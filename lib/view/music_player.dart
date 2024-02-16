@@ -2,8 +2,11 @@ import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/color.dart';
+import 'package:flutter_application_1/lyrics.dart';
 import 'package:flutter_application_1/view/artwork.dart';
+import 'package:flutter_application_1/view/music.dart';
 import 'package:flutter_application_1/view/string.dart';
+import 'package:palette_generator/palette_generator.dart';
 import 'package:spotify/spotify.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
@@ -15,45 +18,61 @@ class Musicplayer extends StatefulWidget {
 }
 
 class _MusicplayerState extends State<Musicplayer> {
-  Color songcolor = Color(0xFF251117);
-  String Artistname = "End of World !";
-  String songname = "Arjan velley";
-  String MusicTrackId = "4ApCig0GTR4IEp7Ijsyo3r";
   final player = AudioPlayer();
-  Duration? duration;
-  String? artistImage;
+  Music music = Music(trackId: "4ApCig0GTR4IEp7Ijsyo3r");
 
-   @override
+  @override
   void dispose() {
     player.dispose();
     super.dispose();
   }
+
   @override
   void initState() {
     final credentials = SpotifyApiCredentials(
         Customstrings.clientId, Customstrings.clientSecret);
     final spotify = SpotifyApi(credentials);
-    spotify.tracks.get(MusicTrackId).then((track) async {
-      String? songname = track.name;
-      if (songname != null) {
+    spotify.tracks.get(music.trackId).then((track) async {
+      String? tempSongName = track.name;
+      if (tempSongName != null) {
+        music.songName = tempSongName;
+        music.artistImage = track.artists?.first.name ?? "";
+        String? image = track.album?.images?.first.url;
+        if (image != null) {
+          music.songImage = image;
+          final tempSongColor = await getImagePalette(NetworkImage(image));
+          if (tempSongColor != null) {
+            music.songColor = tempSongColor;
+          }
+        }
+
+        music.artistImage = track.artists?.first.images?.first.url;
         final yt = YoutubeExplode();
-        final video = (await yt.search.search(songname)).first;
+        final video =
+            (await yt.search.search("$tempSongName ${music.artistName ?? ""}"))
+                .first;
         final videoId = video.id.value;
-        duration = video.duration;
+        music.duration = video.duration;
         setState(() {});
         var manifest = await yt.videos.streamsClient.getManifest(videoId);
-        var audioUrl = manifest.audioOnly.first.url;
+        var audioUrl = manifest.audioOnly.last.url;
         player.play(UrlSource(audioUrl.toString()));
       }
     });
     super.initState();
   }
 
+  Future<Color?> getImagePalette(ImageProvider imageProvider) async {
+    final PaletteGenerator paletteGenerator =
+        await PaletteGenerator.fromImageProvider(imageProvider);
+    return paletteGenerator.dominantColor?.color;
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Scaffold(
-      backgroundColor: songcolor,
+      backgroundColor: music.songColor,
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 26),
@@ -86,15 +105,16 @@ class _MusicplayerState extends State<Musicplayer> {
                         children: [
                           CircleAvatar(
                             backgroundColor: Colors.white,
-                            backgroundImage: NetworkImage(
-                                "https://imgs.search.brave.com/DtBl-Kti9W76KVSxqOW3VhTy6fuvLESSUt0kuXipSO0/rs:fit:860:0:0/g:ce/aHR0cHM6Ly9jZG4u/cGl4YWJheS5jb20v/cGhvdG8vMjAxNS8w/NS8zMS8xMy8xMC9n/aXJsLTc5MTY4Nl82/NDAuanBn"),
+                            backgroundImage: music.artistImage != null
+                                ? NetworkImage(music.artistImage!)
+                                : null,
                             radius: 10,
                           ),
                           SizedBox(
                             height: 4,
                           ),
                           Text(
-                            Artistname,
+                            music.artistName ?? 'Songify',
                             style: textTheme.bodyLarge
                                 ?.copyWith(color: Colors.white),
                           )
@@ -111,9 +131,7 @@ class _MusicplayerState extends State<Musicplayer> {
               Expanded(
                   flex: 2,
                   child: Center(
-                    child: Artwork(
-                        image:
-                            "https://imgs.search.brave.com/fygf0I-YHzut0LA6GrFE3w3m-srMpy6SODGKaqMbugk/rs:fit:860:0:0/g:ce/aHR0cHM6Ly9pLnBp/bmltZy5jb20vb3Jp/Z2luYWxzLzMzLzE2/L2Y3LzMzMTZmNzRj/MzQ3MTkxMDQyZGE1/MDZkMmJlMjJjNGM5/LmpwZw"),
+                    child: Artwork(image: music.songImage!),
                   )),
               Expanded(
                   child: Column(
@@ -125,12 +143,12 @@ class _MusicplayerState extends State<Musicplayer> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            songname,
+                            music.songName ?? '',
                             style: textTheme.titleLarge
                                 ?.copyWith(color: Colors.white),
                           ),
                           Text(
-                            Artistname,
+                            music.artistName ?? '-',
                             style: textTheme.titleMedium
                                 ?.copyWith(color: Colors.white54),
                           )
@@ -150,7 +168,7 @@ class _MusicplayerState extends State<Musicplayer> {
                       builder: (context, data) {
                         return ProgressBar(
                           progress: data.data ?? const Duration(seconds: 0),
-                          total: duration ?? const Duration(minutes: 4),
+                          total: music.duration ?? const Duration(minutes: 4),
                           bufferedBarColor: Colors.white38,
                           baseBarColor: Colors.white10,
                           thumbColor: Colors.white,
@@ -167,7 +185,12 @@ class _MusicplayerState extends State<Musicplayer> {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       IconButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => lyrics()));
+                          },
                           icon: Icon(
                             Icons.lyrics_outlined,
                             color: Colors.white,
