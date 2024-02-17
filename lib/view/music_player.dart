@@ -2,7 +2,6 @@ import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/color.dart';
-import 'package:flutter_application_1/lyrics.dart';
 import 'package:flutter_application_1/view/artwork.dart';
 import 'package:flutter_application_1/view/music.dart';
 import 'package:flutter_application_1/view/string.dart';
@@ -19,7 +18,7 @@ class Musicplayer extends StatefulWidget {
 
 class _MusicplayerState extends State<Musicplayer> {
   final player = AudioPlayer();
-  Music music = Music(trackId: "4ApCig0GTR4IEp7Ijsyo3r");
+  Music music = Music(trackId: "7yDHHVKLbvDmVw1XXhDDIO");
 
   @override
   void dispose() {
@@ -185,12 +184,7 @@ class _MusicplayerState extends State<Musicplayer> {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       IconButton(
-                          onPressed: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => lyrics()));
-                          },
+                          onPressed: () {},
                           icon: Icon(
                             Icons.lyrics_outlined,
                             color: Colors.white,
